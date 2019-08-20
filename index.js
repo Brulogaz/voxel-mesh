@@ -25,20 +25,38 @@ function Mesh(data, mesher, scaleFactor, three) {
   
   for (var i = 0; i < result.faces.length; ++i) {
     geometry.faceVertexUvs[0].push(this.faceVertexUv(i))
-    
+
     var q = result.faces[i]
-    if (q.length === 5) {
-      var f = new this.THREE.Face4(q[0], q[1], q[2], q[3])
-      f.color = new this.THREE.Color(q[4])
-      geometry.faces.push(f)
-    } else if (q.length == 4) {
+      geometry.faceVertexUvs[0].push(this.faceVertexUv(i))
       var f = new this.THREE.Face3(q[0], q[1], q[2])
-      f.color = new this.THREE.Color(q[3])
+      var f2 = new this.THREE.Face3(q[2], q[3], q[0])
+       f.color = new this.THREE.Color(q[4])
+       f2.color = new this.THREE.Color(q[4])
+      geometry.faces.push(f2)
       geometry.faces.push(f)
-    }
+
   }
   
   geometry.computeFaceNormals()
+
+  // compute vertex colors for ambient occlusion
+  var light = new THREE.Color(0xffffff)
+  var shadow = new THREE.Color(0x505050)
+  for (var i = 0; i < geometry.faces.length; ++i) {
+    var face = geometry.faces[i]
+    // facing up
+    if (face.normal.y === 1)       face.vertexColors = [light, light, light, light]
+    // facing down
+    else if (face.normal.y === -1) face.vertexColors = [shadow, shadow, shadow, shadow]
+    // facing right
+    else if (face.normal.x === 1)  face.vertexColors = [shadow, light, light, shadow]
+    // facing left
+    else if (face.normal.x === -1) face.vertexColors = [shadow, shadow, light, light]
+    // facing backward
+    else if (face.normal.z === 1)  face.vertexColors = [shadow, shadow, light, light]
+    // facing forward
+    else                           face.vertexColors = [shadow, light, light, shadow]
+  }
 
   geometry.verticesNeedUpdate = true
   geometry.elementsNeedUpdate = true
@@ -54,9 +72,10 @@ Mesh.prototype.createWireMesh = function(hexColor) {
     color : hexColor || 0xffffff,
     wireframe : true
   })
-  wireMesh = new this.THREE.Mesh(this.geometry, wireMaterial)
+  wireMesh = new THREE.Mesh(this.geometry, wireMaterial)
   wireMesh.scale = this.scale
   wireMesh.doubleSided = true
+
   this.wireMesh = wireMesh
   return wireMesh
 }
@@ -66,6 +85,8 @@ Mesh.prototype.createSurfaceMesh = function(material) {
   var surfaceMesh  = new this.THREE.Mesh( this.geometry, material )
   surfaceMesh.scale = this.scale
   surfaceMesh.doubleSided = false
+  surfaceMesh.castShadow = true;
+  surfaceMesh.receiveShadow = true;
   this.surfaceMesh = surfaceMesh
   return surfaceMesh
 }
